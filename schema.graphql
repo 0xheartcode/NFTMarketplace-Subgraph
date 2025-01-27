@@ -1,0 +1,79 @@
+type Factory @entity {
+  id: ID!                     # Factory contract address
+  type: String!              # "ERC721" or "ERC1155"
+  nftCount: BigInt!
+  nfts: [NFT!]! @derivedFrom(field: "factory")
+  createdAt: BigInt!
+}
+
+type NFT @entity {
+  id: ID!                     # NFT contract address
+  factory: Factory!
+  creator: Bytes!
+  name: String!
+  symbol: String!
+  tokenAddress: Bytes!
+  tokenType: String!          # "ERC721" or "ERC1155"
+  contractCreatedAt: BigInt!  # When contract was deployed
+  tokenInstances: [TokenInstance!]! @derivedFrom(field: "collection")
+}
+
+type TokenInstance @entity {
+  id: ID!                    # contractAddress-tokenId
+  collection: NFT!
+  tokenId: BigInt!
+  mintedAt: BigInt!          # First mint timestamp
+  totalSupply: BigInt!       # Always 1 for ERC721, variable for ERC1155
+  balances: [TokenBalance!]! @derivedFrom(field: "instance")
+  transfers: [Transfer!]! @derivedFrom(field: "instance")
+  listings: [Listing!]! @derivedFrom(field: "instance")
+  bids: [Bid!]! @derivedFrom(field: "instance")
+}
+
+type TokenBalance @entity {
+  id: ID!                     # contractAddress-tokenId-owner
+  instance: TokenInstance!
+  owner: Bytes!
+  amount: BigInt!            # 1 for ERC721, variable for ERC1155
+  createdAt: BigInt!         # When this owner first received the token
+  lastUpdatedAt: BigInt!     # Last balance update
+}
+
+# Keep existing Listing and Bid entities...
+type Listing @entity {
+  id: ID!
+  instance: TokenInstance!
+  seller: Bytes!
+  tokenAddress: Bytes!
+  tokenId: BigInt!
+  amount: BigInt!
+  price: BigInt!
+  currency: Bytes!
+  status: String!
+  createdAt: BigInt!
+}
+
+type Bid @entity {
+  id: ID!
+  instance: TokenInstance!
+  bidder: Bytes!
+  tokenAddress: Bytes!
+  tokenId: BigInt!
+  tokenAmount: BigInt!
+  amount: BigInt!
+  currency: Bytes!
+  timeout: BigInt!
+  status: String!
+  createdAt: BigInt!
+}
+
+type Transfer @entity {
+  id: ID!
+  instance: TokenInstance!
+  from: Bytes!
+  to: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
+}
+
+

@@ -1,0 +1,4 @@
+- [] support ownership transfer
+- [] integrate upcoming helper smart contract for adding unrelated contracts AND URI events 
+- [] change the Bid and Listing structure to have a unique ID by which they will be tracked
+- [] Update the Makefile version to the newer version I currently use 

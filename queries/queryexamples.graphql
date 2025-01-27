@@ -1,0 +1,287 @@
+# 1. Get all NFTs for a specific collection address
+{
+ nfts(where: { tokenAddress: "0x..." }) {
+   id
+   name
+   tokenAddress
+ }
+}
+
+# 2. Get all created contract addresses from both factories
+{
+ factories {
+   id
+   type
+   nftCount
+   nfts {
+     tokenAddress
+   }
+ }
+}
+
+# 3. Get volume for specific collections
+{
+ listings(
+   where: {
+     status: "SOLD",
+     tokenAddress_in: ["0x...", "0x..."] 
+   }
+ ) {
+   tokenAddress
+   price
+ }
+}
+
+# 4. Get floor prices by collection
+{
+ listings(
+   where: {
+     status: "ACTIVE",
+     tokenAddress_in: ["0x...", "0x..."]
+   },
+   orderBy: price,
+   orderDirection: asc,
+   first: 1
+ ) {
+   tokenAddress
+   price
+ }
+}
+
+# 5. Get full history for specific token
+{
+ listings(where: { 
+   tokenAddress: "0x...",
+   tokenId: "1"
+ }) {
+   id
+   status
+   price
+   createdAt
+   seller
+ }
+ bids(where: {
+   tokenAddress: "0x...",
+   tokenId: "1"
+ }) {
+   id
+   status
+   amount
+   createdAt
+   bidder
+ }
+}
+
+# 6. Get top sellers by volume
+{
+ listings(
+   where: { status: "SOLD" },
+   orderBy: price,
+   orderDirection: desc
+ ) {
+   seller
+   price
+   tokenAddress
+ }
+}
+
+# 7. Get user's active listings and bids
+{
+ listings(where: { 
+   seller: "0x...",
+   status: "ACTIVE"
+ }) {
+   id
+   tokenAddress
+   tokenId
+   price
+ }
+ bids(where: {
+   bidder: "0x...",
+   status: "ACTIVE" 
+ }) {
+   tokenAddress
+   tokenId
+   amount
+ }
+}
+
+# 8. Get recent sales with price trends
+{
+ listings(
+   where: { status: "SOLD" },
+   orderBy: createdAt,
+   orderDirection: desc,
+   first: 10
+ ) {
+   tokenAddress
+   tokenId
+   price
+   createdAt
+ }
+}
+
+# 9. Get collection stats
+{
+ listings(where: { tokenAddress: "0x..." }) {
+   status
+   price
+ }
+ bids(where: { tokenAddress: "0x..." }) {
+   status
+   amount
+ }
+}
+
+# 10. Get hot collections (most active)
+{
+ factories(
+   orderBy: nftCount,
+   orderDirection: desc,
+   first: 5
+ ) {
+   id
+   type
+   nftCount
+   nfts {
+     tokenAddress
+   }
+ }
+}
+
+# 11.Get History of a specific token instance
+query GetTokenInstanceFullHistory($instanceId: ID!) {
+  # First, get the token instance itself
+  tokenInstance(id: $instanceId) {
+    id
+    tokenId
+    mintedAt
+    totalSupply
+    
+    # Get the collection info
+    collection {
+      name
+      symbol
+      tokenType
+      creator
+    }
+    
+    # Get all transfers (our new entity!)
+    transfers(orderBy: timestamp, orderDirection: desc) {
+      id
+      from
+      to
+      amount
+      timestamp
+    }
+    
+    # Get current balances
+    balances {
+      owner
+      amount
+      createdAt
+      lastUpdatedAt
+    }
+    
+    # Get all listings
+    listings(orderBy: createdAt, orderDirection: desc) {
+      id
+      seller
+      amount
+      price
+      currency
+      status
+      createdAt
+    }
+    
+    # Get all bids
+    bids(orderBy: createdAt, orderDirection: desc) {
+      id
+      bidder
+      tokenAmount
+      amount
+      currency
+      status
+      createdAt
+      timeout
+    }
+  }
+}
+
+OR
+
+query GetTokenInstanceFullHistory(
+  $instanceId: ID!
+  $first: Int = 100
+  $skip: Int = 0
+  $orderDirection: OrderDirection = desc
+  $listingStatus: String
+  $bidStatus: String
+) {
+  tokenInstance(id: $instanceId) {
+    id
+    tokenId
+    mintedAt
+    totalSupply
+    
+    collection {
+      name
+      symbol
+      tokenType
+      creator
+    }
+    
+    transfers(
+      first: $first
+      skip: $skip
+      orderBy: timestamp
+      orderDirection: $orderDirection
+    ) {
+      id
+      from
+      to
+      amount
+      timestamp
+    }
+    
+    balances {
+      owner
+      amount
+      createdAt
+      lastUpdatedAt
+    }
+    
+    listings(
+      first: $first
+      skip: $skip
+      where: { status: $listingStatus }
+      orderBy: createdAt
+      orderDirection: $orderDirection
+    ) {
+      id
+      seller
+      amount
+      price
+      currency
+      status
+      createdAt
+    }
+    
+    bids(
+      first: $first
+      skip: $skip
+      where: { status: $bidStatus }
+      orderBy: createdAt
+      orderDirection: $orderDirection
+    ) {
+      id
+      bidder
+      tokenAmount
+      amount
+      currency
+      status
+      createdAt
+      timeout
+    }
+  }
+}
