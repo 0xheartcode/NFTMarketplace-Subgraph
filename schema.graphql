@@ -74,6 +74,10 @@ type Transfer @entity {
   to: Bytes!
   amount: BigInt!
   timestamp: BigInt!
+  transferType: String!        # "DIRECT", "MARKETPLACE_SALE", "BID_ACCEPTANCE", "MINT", "BURN"
+  relatedListing: Listing      # If from marketplace sale
+  relatedBid: Bid             # If from bid acceptance
+  transactionHash: Bytes!
 }
 
 type ContractOwnership @entity {
@@ -83,6 +87,17 @@ type ContractOwnership @entity {
   previousOwner: Bytes
   transferredAt: BigInt!
   transactionHash: Bytes!
+}
+
+type PendingTransfer @entity {
+  id: ID!                     # txHash-tokenAddress-tokenId
+  transactionHash: Bytes!
+  tokenAddress: Bytes!
+  tokenId: BigInt!
+  transferType: String!
+  listingId: String
+  bidId: String
+  createdAt: BigInt!
 }
 
 

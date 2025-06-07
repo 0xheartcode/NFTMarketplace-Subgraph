@@ -1,6 +1,7 @@
 import { Transfer, OwnershipTransferred } from '../generated/templates/NFT721/NFT721'
 import { NFT, TokenInstance, TokenBalance, Transfer as TransferEntity, ContractOwnership } from '../generated/schema'
 import { BigInt, Address } from '@graphprotocol/graph-ts'
+import { getPendingTransfer, deletePendingTransfer } from './helpers'
 
 export function handleTransfer(event: Transfer): void {
   let nftAddress = event.address.toHexString()
@@ -29,6 +30,30 @@ export function handleTransfer(event: Transfer): void {
   transfer.to = to
   transfer.amount = BigInt.fromI32(1)
   transfer.timestamp = event.block.timestamp
+  transfer.transactionHash = event.transaction.hash
+  
+  // Check for pending transfer context from marketplace events
+  let pendingTransfer = getPendingTransfer(event.transaction.hash, event.address, tokenId)
+  
+  if (pendingTransfer) {
+    // This transfer is from a marketplace transaction
+    transfer.transferType = pendingTransfer.transferType
+    transfer.relatedListing = pendingTransfer.listingId
+    transfer.relatedBid = pendingTransfer.bidId
+    
+    // Clean up the pending transfer record
+    deletePendingTransfer(event.transaction.hash, event.address, tokenId)
+  } else {
+    // This is a direct transfer
+    if (from == Address.zero()) {
+      transfer.transferType = "MINT"
+    } else if (to == Address.zero()) {
+      transfer.transferType = "BURN"
+    } else {
+      transfer.transferType = "DIRECT"
+    }
+  }
+  
   transfer.save()
   
   // Handle 'from' balance

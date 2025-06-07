@@ -2,6 +2,7 @@
 import {BidAccepted, BidCancelled, BidPlaced, BidOutbid, ListingCancelled, ListingCreated, ListingSold} from '../generated/NFTMarketplace/NFTMarketplace'
 import {Bid, Listing, NFT, TokenInstance} from '../generated/schema'
 import {BigInt} from '@graphprotocol/graph-ts'
+import { createPendingTransfer } from './helpers'
 
 export function handleListingCreated(event: ListingCreated): void {
     let listing = new Listing(event.params.listingId.toString())
@@ -36,6 +37,17 @@ export function handleListingSold(event: ListingSold): void {
     if (listing) {
         listing.status = "SOLD"
         listing.save()
+        
+        // Create pending transfer context for the upcoming NFT transfer
+        createPendingTransfer(
+            event.transaction.hash,
+            event.params.tokenAddress,
+            event.params.tokenId,
+            "MARKETPLACE_SALE",
+            event.params.listingId.toString(),
+            null,
+            event.block.timestamp
+        )
     }
 }
 
@@ -111,6 +123,17 @@ export function handleBidAccepted(event: BidAccepted): void {
     if (bid) {
         bid.status = "ACCEPTED"
         bid.save()
+        
+        // Create pending transfer context for the upcoming NFT transfer
+        createPendingTransfer(
+            event.transaction.hash,
+            event.params.tokenAddress,
+            event.params.tokenId,
+            "BID_ACCEPTANCE",
+            null,
+            id,
+            event.block.timestamp
+        )
     }
     //
     // let nft = NFT.load(event.params.tokenAddress.toHexString());
