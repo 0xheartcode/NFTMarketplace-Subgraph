@@ -100,4 +100,37 @@ type PendingTransfer @entity {
   createdAt: BigInt!
 }
 
+type ListingHistory @entity {
+  id: ID!                     # txHash-logIndex (unique)
+  listingId: String!          # Links to current Listing
+  action: String!             # "CREATED", "CANCELLED", "SOLD"
+  instance: TokenInstance!
+  seller: Bytes!
+  tokenAddress: Bytes!
+  tokenId: BigInt!
+  amount: BigInt!
+  price: BigInt!
+  currency: Bytes!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type BidHistory @entity {
+  id: ID!                     # txHash-logIndex (unique)
+  bidId: String!              # Links to current Bid
+  action: String!             # "PLACED", "CANCELLED", "ACCEPTED", "OUTBID"
+  instance: TokenInstance!
+  bidder: Bytes!
+  tokenAddress: Bytes!
+  tokenId: BigInt!
+  tokenAmount: BigInt!
+  amount: BigInt!
+  currency: Bytes!
+  timeout: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+  blockNumber: BigInt!
+}
+
 
