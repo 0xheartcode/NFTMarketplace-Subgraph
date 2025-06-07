@@ -1,5 +1,5 @@
-import { Transfer } from '../generated/templates/NFT721/NFT721'
-import { NFT, TokenInstance, TokenBalance, Transfer as TransferEntity } from '../generated/schema'
+import { Transfer, OwnershipTransferred } from '../generated/templates/NFT721/NFT721'
+import { NFT, TokenInstance, TokenBalance, Transfer as TransferEntity, ContractOwnership } from '../generated/schema'
 import { BigInt, Address } from '@graphprotocol/graph-ts'
 
 export function handleTransfer(event: Transfer): void {
@@ -58,4 +58,30 @@ export function handleTransfer(event: Transfer): void {
   toBalance.amount = BigInt.fromI32(1)
   toBalance.lastUpdatedAt = event.block.timestamp
   toBalance.save()
+}
+
+export function handleOwnershipTransferred(event: OwnershipTransferred): void {
+  let contractAddress = event.address.toHexString()
+  let previousOwner = event.params.previousOwner
+  let newOwner = event.params.newOwner
+  
+  // Load the NFT contract entity to ensure it exists
+  let nft = NFT.load(contractAddress)
+  if (!nft) {
+    // Contract ownership transfer for a contract not yet tracked
+    return
+  }
+  
+  // Create or update contract ownership record
+  let ownership = ContractOwnership.load(contractAddress)
+  if (!ownership) {
+    ownership = new ContractOwnership(contractAddress)
+  }
+  
+  ownership.contract = contractAddress
+  ownership.previousOwner = previousOwner
+  ownership.owner = newOwner
+  ownership.transferredAt = event.block.timestamp
+  ownership.transactionHash = event.transaction.hash
+  ownership.save()
 }

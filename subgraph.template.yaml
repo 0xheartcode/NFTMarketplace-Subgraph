@@ -95,12 +95,15 @@ templates:
         - NFT
         - TokenInstance
         - TokenBalance
+        - ContractOwnership
       abis:
         - name: NFT721
           file: ./src/abis/NFT721.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
 
   - kind: ethereum
     name: NFT1155
@@ -124,3 +127,5 @@ templates:
           handler: handleTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleTransferBatch
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
