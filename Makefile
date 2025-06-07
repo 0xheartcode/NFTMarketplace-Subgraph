@@ -1,49 +1,27 @@
-# Environment variables
+# ================================================================================
+# NFT Marketplace Subgraph - Build and Deployment Automation
+# ================================================================================
+
+MAKEFLAGS += --no-print-directory
+
+# ================================================================================
+# Environment Configuration
+# ================================================================================
 SHELL := /bin/bash
 
-# Check for .env file
+# Check for .env file and include if exists
 ifneq (,$(wildcard .env))
     include .env
     export
 endif
 
+# Runtime detection
 IN_DOCKER := $(shell test -f /.dockerenv && echo 1 || echo 0)
 
 # Environment variables with defaults
 NETWORK ?= $(if $(ENV_NETWORK),$(ENV_NETWORK),localhost)
 START_BLOCK ?= $(if $(ENV_START_BLOCK),$(ENV_START_BLOCK),10596748)
 RPC_URL ?= $(if $(ENV_RPC_URL),$(ENV_RPC_URL),https://eth-mainnet.g.alchemy.com/v2/your-api-key)
-
-# Validation target
-check-env:
-	@echo "🔍 Checking environment configuration..."
-	@echo "  Network:     $(NETWORK)"
-	@echo "  Start Block: $(START_BLOCK)"
-	@echo "  RPC URL:     $(RPC_URL)"
-	@if [ ! -f .env ]; then \
-		echo "⚠️  Warning: .env file not found, using localhost default values"; \
-	else \
-		echo "✓ Using values from .env file"; \
-	fi
-
-check-testnet-env:
-	@if [ ! -f .env.testnet ]; then \
-		echo "❌ Error: .env.testnet file is missing. Please create it with appropriate testnet configuration."; \
-		exit 1; \
-	fi
-	@echo "✓ Found .env.testnet file"
-	@cp .env.testnet .env
-	@echo "✓ Moved .env.testnet to .env"
-
-check-localhost-env:
-	@if [ ! -f .env.localhost ]; then \
-		echo "❌ Error: .env.localhost file is missing. Please create it with appropriate localhost configuration."; \
-		exit 1; \
-	fi
-	@echo "✓ Found .env.localhost file"
-	@cp .env.localhost .env
-	@echo "✓ Moved .env.localhost to .env"
-
 
 # Directory structure
 DATA_DIR = data
@@ -52,30 +30,28 @@ POSTGRES_DIR = $(DATA_DIR)/postgres
 
 # Docker configuration
 DOCKER_COMPOSE = docker compose
-GRAPH_NODE_URL = http://localhost:8020/
-IPFS_URL = http://localhost:5001
 SUBGRAPH_NAME = nft-marketplace
 
+# Dynamic host configuration based on environment
 GRAPH_NODE_HOST := $(if $(filter 1,$(IN_DOCKER)),graph-node,localhost)
 IPFS_HOST := $(if $(filter 1,$(IN_DOCKER)),ipfs,localhost)
 GRAPH_NODE_URL = http://$(GRAPH_NODE_HOST):8020/
 IPFS_URL = http://$(IPFS_HOST):5001
-	
+
 # Dependency checks
 PNPM_EXISTS := $(shell command -v pnpm 2> /dev/null)
 DOCKER_EXISTS := $(shell command -v docker 2> /dev/null)
 GRAPH_EXISTS := $(shell command -v graph 2> /dev/null)
 ANVIL_EXISTS := $(shell command -v anvil 2> /dev/null)
 
-
-# Add the health check definition here
+# Health check script for service readiness
 define HEALTH_CHECK
 #!/bin/bash
 
 check_service() {
     local url="$$1"
     local name="$$2"
-    local max_attempts="$$30"
+    local max_attempts="$$3"
     local attempt=1
 
     echo "Checking $$name..."
@@ -92,7 +68,7 @@ check_service() {
     return 1
 }
 
-# Check Graph Node
+# Check Graph Node readiness
 if ! check_service "http://$(GRAPH_NODE_HOST):8030" "Graph Node" 30; then
     exit 1
 fi
@@ -100,18 +76,58 @@ fi
 echo "✨ Graph Node is ready"
 endef
 
-.PHONY: all check-deps install setup clean start-anvil start-graph-node prepare deploy monitor help
+# ================================================================================
+##@ Default Targets
+# ================================================================================
 
-# Default target
-all: check-localhost-env check-env check-deps install setup prepare deploy
+.PHONY: all
+all: check-localhost-env check-env check-deps install setup prepare deploy ## Run complete setup and deployment for localhost (default target)
 
+.PHONY: prodtestnet  
+prodtestnet: check-testnet-env check-env install setup prepare deploy ## Run complete setup and deployment for testnet
 
-# Default target
-prodtestnet: check-testnet-env check-env install setup prepare deploy
+# ================================================================================
+##@ Environment Management
+# ================================================================================
 
+.PHONY: check-env
+check-env: ## Validate current environment configuration and display settings
+	@echo "🔍 Checking environment configuration..."
+	@echo "  Network:     $(NETWORK)"
+	@echo "  Start Block: $(START_BLOCK)"
+	@echo "  RPC URL:     $(RPC_URL)"
+	@if [ ! -f .env ]; then \
+		echo "⚠️  Warning: .env file not found, using localhost default values"; \
+	else \
+		echo "✓ Using values from .env file"; \
+	fi
 
-# Check dependencies
-check-deps:
+.PHONY: check-testnet-env
+check-testnet-env: ## Set up testnet environment by copying .env.testnet to .env
+	@if [ ! -f .env.testnet ]; then \
+		echo "❌ Error: .env.testnet file is missing. Please create it with appropriate testnet configuration."; \
+		exit 1; \
+	fi
+	@echo "✓ Found .env.testnet file"
+	@cp .env.testnet .env
+	@echo "✓ Copied .env.testnet to .env"
+
+.PHONY: check-localhost-env
+check-localhost-env: ## Set up localhost environment by copying .env.localhost to .env
+	@if [ ! -f .env.localhost ]; then \
+		echo "❌ Error: .env.localhost file is missing. Please create it with appropriate localhost configuration."; \
+		exit 1; \
+	fi
+	@echo "✓ Found .env.localhost file"
+	@cp .env.localhost .env
+	@echo "✓ Copied .env.localhost to .env"
+
+# ================================================================================
+##@ Dependencies & Installation
+# ================================================================================
+
+.PHONY: check-deps
+check-deps: ## Verify all required system dependencies are installed
 	@echo "Checking dependencies..."
 	@if [ -z "$(PNPM_EXISTS)" ]; then \
 		echo "❌ pnpm is not installed. Please install pnpm first."; \
@@ -141,20 +157,24 @@ check-deps:
 	fi
 	@echo "✨ All dependencies are satisfied"
 
-# Install dependencies
-install:
+.PHONY: install
+install: ## Install project dependencies using pnpm
 	@echo "Installing dependencies..."
 	pnpm install
-	
-# Setup data directories
-setup:
+
+# ================================================================================
+##@ Directory & Data Management
+# ================================================================================
+
+.PHONY: setup
+setup: ## Create required data directories for IPFS and PostgreSQL
 	@echo "Setting up data directories..."
 	mkdir -p $(IPFS_DIR)
 	mkdir -p $(POSTGRES_DIR)
 	@echo "Data directories created successfully"
 
-# Clean up
-clean:
+.PHONY: clean
+clean: ## Clean up generated files, data directories and Docker containers
 	@echo "Cleaning up..."
 	@if [ "$(NETWORK)" = "localhost" ]; then \
 		echo "Cleaning localhost environment..."; \
@@ -169,8 +189,12 @@ clean:
 	rm -rf generated/
 	rm -rf build/
 
-# Start Anvil node
-start-anvil:
+# ================================================================================
+##@ Service Management
+# ================================================================================
+
+.PHONY: start-anvil
+start-anvil: ## Start Anvil node for local blockchain development with network forking
 	@echo "Starting Anvil node..."
 	@if [ "$$(uname)" = "Linux" ]; then \
 		gnome-terminal -- bash -c "anvil --fork-url $(RPC_URL) --host 0.0.0.0 --fork-block-number $(START_BLOCK) --block-time 1 --chain-id 1337; exec bash"; \
@@ -183,8 +207,8 @@ start-anvil:
 	@echo "Waiting for Anvil to start..."
 	@sleep 5
 
-# Start Graph Node
-start-graph-node:
+.PHONY: start-graph-node
+start-graph-node: ## Start Graph Node and supporting services using Docker Compose
 	@echo "Starting Graph Node..."
 	@if [ "$(IN_DOCKER)" = "0" ]; then \
 		if [ "$(NETWORK)" = "localhost" ]; then \
@@ -198,21 +222,8 @@ start-graph-node:
 	@echo "Waiting for services to initialize..."
 	@echo "$$HEALTH_CHECK" | bash
 
-# Prepare subgraph
-prepare:
-	@echo "Preparing subgraph..."
-	pnpm run prepare
-	graph codegen
-	@echo "Subgraph preparation completed"
-
-# Deploy subgraph
-deploy: start-graph-node
-	@echo "Creating and deploying subgraph..."
-	-graph create --node $(GRAPH_NODE_URL) $(SUBGRAPH_NAME)
-	graph deploy --node $(GRAPH_NODE_URL) --ipfs $(IPFS_URL) $(SUBGRAPH_NAME) --version-label v0.0.1
-
-# Monitor logs
-monitor:
+.PHONY: monitor
+monitor: ## Monitor Graph Node service logs in real-time
 	@echo "Monitoring Graph Node logs..."
 	@if [ "$(NETWORK)" = "localhost" ]; then \
 		$(DOCKER_COMPOSE) -f dockerfiles/core/localhost.docker-compose.yml logs -f; \
@@ -220,30 +231,32 @@ monitor:
 		$(DOCKER_COMPOSE) -f dockerfiles/core/testnet.docker-compose.yml logs -f; \
 	fi
 
-# Help
-help:
-	@echo "Available targets:"
-	@echo "  all          - Run complete setup and deployment (default)"
-	@echo "  check-env    - Check required env file"
-	@echo "  check-deps   - Check required dependencies"
-	@echo "  install      - Install project dependencies"
-	@echo "  setup        - Create required directories"
-	@echo "  clean        - Clean up directories and containers"
-	@echo "  start-anvil  - Start Anvil node"
-	@echo "  start-graph-node - Start Graph Node services"
-	@echo "  prepare      - Prepare subgraph files"
-	@echo "  deploy       - Deploy subgraph to local Graph Node"
-	@echo "  monitor      - Monitor Graph Node logs"
-	@echo "  help         - Show this help message"
+# ================================================================================
+##@ Subgraph Development
+# ================================================================================
 
-# Master command (development workflow)
+.PHONY: prepare
+prepare: ## Prepare subgraph configuration and generate TypeScript code from GraphQL schema
+	@echo "Preparing subgraph..."
+	pnpm run prepare
+	graph codegen
+	@echo "Subgraph preparation completed"
+
+.PHONY: deploy
+deploy: start-graph-node ## Deploy subgraph to local Graph Node instance
+	@echo "Creating and deploying subgraph..."
+	-graph create --node $(GRAPH_NODE_URL) $(SUBGRAPH_NAME)
+	graph deploy --node $(GRAPH_NODE_URL) --ipfs $(IPFS_URL) $(SUBGRAPH_NAME) --version-label v0.0.1
+
+# ================================================================================
+##@ Development Workflows
+# ================================================================================
+
 .PHONY: dev
-dev: clean check-localhost-env check-env check-deps install setup start-anvil prepare deploy monitor
+dev: clean check-localhost-env check-env check-deps install setup start-anvil prepare deploy monitor ## Complete local development workflow with monitoring
 
 .PHONY: deploy-prodtestnet
-
-# Production deployment command that handles cleanup and container startup
-deploy-prodtestnet:
+deploy-prodtestnet: ## Production deployment workflow for testnet with container orchestration
 	@echo "Starting production deployment..."
 	$(MAKE) clean
 	$(MAKE) check-testnet-env
@@ -255,3 +268,14 @@ deploy-prodtestnet:
 		echo "Deploying to $(NETWORK)..."; \
 		docker compose -f dockerfiles/ci_cd/testnet.docker-compose.yml up --build; \
 	fi
+
+# ================================================================================
+##@ Help & Information
+# ================================================================================
+
+.PHONY: help
+help: ## Display this help message with available targets and descriptions
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+# Make help the default target when no target is specified
+.DEFAULT_GOAL := help
