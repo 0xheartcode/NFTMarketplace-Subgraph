@@ -15,6 +15,9 @@ template.dataSources.forEach(dataSource => {
   } else if (dataSource.name === 'NFT1155Factory') {
     dataSource.source.address = process.env.NFT1155_FACTORY_ADDRESS;
     dataSource.source.startBlock = parseInt(process.env.START_BLOCK);
+  } else if (dataSource.name === 'NFT6909Factory') {
+    dataSource.source.address = process.env.NFT6909_FACTORY_ADDRESS;
+    dataSource.source.startBlock = parseInt(process.env.START_BLOCK);
   } else if (dataSource.name === 'NFTMarketplace') {
     dataSource.source.address = process.env.NFT_MARKETPLACE_ADDRESS;
     dataSource.source.startBlock = parseInt(process.env.START_BLOCK);

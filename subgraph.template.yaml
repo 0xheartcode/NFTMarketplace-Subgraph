@@ -47,6 +47,28 @@ dataSources:
       file: ./src/nft1155-factory.ts
 
   - kind: ethereum
+    name: NFT6909Factory
+    network: localhost
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: NFT6909Factory
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Factory
+        - NFT
+      abis:
+        - name: NFT6909Factory
+          file: ./src/abis/NFT6909Factory.json
+      eventHandlers:
+        - event: NFT6909Created(indexed address,indexed address,string,string)
+          handler: handleNFT6909Created
+      file: ./src/nft6909-factory.ts
+
+  - kind: ethereum
     name: NFTMarketplace
     network: localhost
     source:
@@ -127,5 +149,31 @@ templates:
           handler: handleTransferSingle
         - event: TransferBatch(indexed address,indexed address,indexed address,uint256[],uint256[])
           handler: handleTransferBatch
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+
+  - kind: ethereum
+    name: NFT6909
+    network: localhost
+    source:
+      abi: NFT6909
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/nft6909-template.ts
+      entities:
+        - NFT
+        - TokenInstance
+        - TokenBalance
+        - ContractOwnership
+      abis:
+        - name: NFT6909
+          file: ./src/abis/NFT6909.json
+      eventHandlers:
+        - event: Transfer(address,indexed address,indexed address,indexed uint256,uint256)
+          handler: handleTransfer
+        - event: OperatorSet(indexed address,indexed address,bool)
+          handler: handleOperatorSet
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred

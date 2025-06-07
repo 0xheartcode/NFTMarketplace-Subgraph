@@ -1,10 +1,10 @@
 # NFT Marketplace Subgraph
 
-A comprehensive subgraph implementation for tracking NFT marketplace activities, supporting both ERC721 and ERC1155 tokens. This subgraph indexes contract events to provide real-time insights into NFT creations, listings, bids, and sales.
+A comprehensive subgraph implementation for tracking NFT marketplace activities, supporting ERC721, ERC1155, and ERC6909 tokens. This subgraph indexes contract events to provide real-time insights into NFT creations, listings, bids, and sales.
 
 ## Features
 
-- Multi-token standard support (ERC721 & ERC1155)
+- Multi-token standard support (ERC721, ERC1155 & ERC6909)
 - Factory contract tracking for NFT deployments
 - Comprehensive marketplace activity monitoring:
   - Listing creation and management
@@ -46,6 +46,7 @@ The following tools are required to run this subgraph:
 NETWORK=localhost
 NFT721_FACTORY_ADDRESS=
 NFT1155_FACTORY_ADDRESS=
+NFT6909_FACTORY_ADDRESS=
 NFT_MARKETPLACE_ADDRESS=
 START_BLOCK=
 RPC_URL=
