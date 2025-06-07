@@ -1,0 +1,339 @@
+# queries/metrics.graphql
+# ==============================================
+# Analytics & Metrics Queries
+# ==============================================
+# These queries focus on data analysis, trends, and marketplace metrics
+# Suitable for: Dashboards, analytics platforms, market research
+
+# Query 1: Get collection floor price
+# Variables: $collectionAddress: Bytes!
+query GetCollectionFloorPrice($collectionAddress: Bytes!) {
+  listings(
+    where: { 
+      tokenAddress: $collectionAddress, 
+      status: "ACTIVE" 
+    }
+    orderBy: price
+    orderDirection: asc
+    first: 1
+  ) {
+    price
+    currency
+    tokenId
+    seller
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}
+
+# Query 2: Calculate collection trading volume
+# Variables: $collectionAddress: Bytes!, $timeframe: BigInt!
+query GetCollectionVolume($collectionAddress: Bytes!, $timeframe: BigInt!) {
+  # Get all sales within timeframe
+  sales: listings(
+    where: { 
+      tokenAddress: $collectionAddress, 
+      status: "SOLD",
+      createdAt_gte: $timeframe
+    }
+  ) {
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}
+
+# Query 3: Get top selling collections by volume
+# Note: This requires aggregation logic in the application layer
+query GetTopCollectionsBySales($limit: Int = 10, $timeframe: BigInt!) {
+  listings(
+    where: { 
+      status: "SOLD",
+      createdAt_gte: $timeframe
+    }
+    orderBy: price
+    orderDirection: desc
+    first: 1000  # Get large sample for aggregation
+  ) {
+    tokenAddress
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+}
+
+# Query 4: Get user trading statistics
+# Variables: $userAddress: Bytes!
+query GetUserTradingStats($userAddress: Bytes!) {
+  # Sales made by user
+  salesMade: listings(
+    where: { 
+      seller: $userAddress, 
+      status: "SOLD" 
+    }
+  ) {
+    price
+    currency
+    createdAt
+    tokenAddress
+  }
+  
+  # Purchases made by user (need to find via transfers)
+  # Note: This is complex with current schema - might need enhancement
+  
+  # Active listings
+  activeListings: listings(
+    where: { 
+      seller: $userAddress, 
+      status: "ACTIVE" 
+    }
+  ) {
+    price
+    currency
+    createdAt
+    tokenAddress
+  }
+  
+  # Active bids
+  activeBids: bids(
+    where: { 
+      bidder: $userAddress, 
+      status: "ACTIVE" 
+    }
+  ) {
+    amount
+    currency
+    createdAt
+    tokenAddress
+  }
+  
+  # Successful bids
+  successfulBids: bids(
+    where: { 
+      bidder: $userAddress, 
+      status: "ACCEPTED" 
+    }
+  ) {
+    amount
+    currency
+    createdAt
+    tokenAddress
+  }
+}
+
+# Query 5: Get price trends for a specific token
+# Variables: $instanceId: ID!
+query GetTokenPriceTrends($instanceId: ID!) {
+  tokenInstance(id: $instanceId) {
+    # Historical sales (sold listings)
+    priceHistory: listings(
+      where: { status: "SOLD" }
+      orderBy: createdAt
+      orderDirection: asc
+    ) {
+      price
+      currency
+      createdAt
+      seller
+    }
+    
+    # Current active listings
+    currentListings: listings(
+      where: { status: "ACTIVE" }
+      orderBy: price
+      orderDirection: asc
+    ) {
+      price
+      currency
+      createdAt
+      seller
+    }
+    
+    # Bid history for market sentiment
+    bidHistory: bids(
+      orderBy: createdAt
+      orderDirection: asc
+    ) {
+      amount
+      currency
+      status
+      createdAt
+      bidder
+    }
+  }
+}
+
+# Query 6: Get market activity heatmap data
+# Variables: $timeframe: BigInt!, $limit: Int = 500
+query GetMarketActivityHeatmap($timeframe: BigInt!, $limit: Int = 500) {
+  # Recent sales for activity mapping
+  recentSales: listings(
+    where: { 
+      status: "SOLD",
+      createdAt_gte: $timeframe
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    tokenAddress
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+  
+  # New listings for supply tracking
+  newListings: listings(
+    where: { 
+      status: "ACTIVE",
+      createdAt_gte: $timeframe
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    tokenAddress
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+}
+
+# Query 7: Get token ownership distribution
+# Variables: $collectionAddress: String!
+query GetOwnershipDistribution($collectionAddress: String!) {
+  nft(id: $collectionAddress) {
+    name
+    symbol
+    tokenType
+    
+    # Get all token instances and their balances
+    tokenInstances(first: 1000) {
+      id
+      tokenId
+      totalSupply
+      balances {
+        owner
+        amount
+      }
+    }
+  }
+}
+
+# Query 8: Get marketplace health metrics
+query GetMarketplaceHealthMetrics($timeframe: BigInt!) {
+  # Total active listings
+  activeListings: listings(where: { status: "ACTIVE" }) {
+    id
+  }
+  
+  # Total active bids
+  activeBids: bids(where: { status: "ACTIVE" }) {
+    id
+  }
+  
+  # Recent sales volume
+  recentSales: listings(
+    where: { 
+      status: "SOLD",
+      createdAt_gte: $timeframe
+    }
+  ) {
+    price
+    currency
+  }
+  
+  # New collections created
+  newCollections: nfts(
+    where: { contractCreatedAt_gte: $timeframe }
+  ) {
+    id
+    tokenType
+  }
+  
+  # Active factories
+  factories {
+    id
+    type
+    nftCount
+  }
+}
+
+# Query 9: Get collection comparison metrics
+# Variables: $collectionAddresses: [Bytes!]!
+query GetCollectionComparison($collectionAddresses: [Bytes!]!) {
+  # Get data for each collection
+  collections: nfts(where: { tokenAddress_in: $collectionAddresses }) {
+    id
+    name
+    symbol
+    tokenType
+    creator
+    contractCreatedAt
+    
+    # Sample of tokens for counting
+    tokenInstances(first: 1000) {
+      id
+    }
+  }
+  
+  # Active listings for each collection
+  activeListings: listings(
+    where: { 
+      tokenAddress_in: $collectionAddresses,
+      status: "ACTIVE"
+    }
+  ) {
+    tokenAddress
+    price
+    currency
+  }
+  
+  # Recent sales for each collection
+  recentSales: listings(
+    where: { 
+      tokenAddress_in: $collectionAddresses,
+      status: "SOLD"
+    }
+    orderBy: createdAt
+    orderDirection: desc
+    first: 100
+  ) {
+    tokenAddress
+    price
+    currency
+    createdAt
+  }
+}

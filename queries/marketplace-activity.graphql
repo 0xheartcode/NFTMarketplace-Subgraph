@@ -1,0 +1,438 @@
+# Marketplace Activity and Discovery Queries
+
+# Global marketplace activity feed
+query GetMarketplaceActivityFeed($limit: Int = 50, $timeframe: BigInt) {
+  # Recent sales
+  recentSales: listings(
+    where: { 
+      status: "SOLD",
+      createdAt_gte: $timeframe
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+  
+  # New high-value listings
+  newListings: listings(
+    where: { 
+      status: "ACTIVE",
+      createdAt_gte: $timeframe
+    }
+    first: $limit
+    orderBy: price
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+  
+  # High-value new bids
+  newBids: bids(
+    where: { 
+      status: "ACTIVE",
+      createdAt_gte: $timeframe
+    }
+    first: $limit
+    orderBy: amount
+    orderDirection: desc
+  ) {
+    id
+    bidder
+    tokenAddress
+    tokenId
+    tokenAmount
+    amount
+    currency
+    timeout
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+}
+
+# Find profitable trading opportunities
+query FindTradingOpportunities($collectionAddress: Bytes!) {
+  # Active listings sorted by price (potential deals)
+  activeListings: listings(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "ACTIVE"
+    }
+    orderBy: price
+    orderDirection: asc
+  ) {
+    id
+    seller
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      tokenId
+      # Recent sales for comparison
+      listings(
+        where: { status: "SOLD" }
+        first: 5
+        orderBy: createdAt
+        orderDirection: desc
+      ) {
+        price
+        currency
+        createdAt
+      }
+    }
+  }
+  
+  # High bids that might be accepted
+  highBids: bids(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "ACTIVE"
+    }
+    orderBy: amount
+    orderDirection: desc
+  ) {
+    id
+    bidder
+    tokenId
+    tokenAmount
+    amount
+    currency
+    timeout
+    createdAt
+  }
+}
+
+# Market depth analysis for collection
+query GetMarketDepth($collectionAddress: Bytes!, $limit: Int = 100) {
+  # All active listings (supply)
+  supply: listings(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "ACTIVE"
+    }
+    first: $limit
+    orderBy: price
+    orderDirection: asc
+  ) {
+    price
+    currency
+    amount
+    tokenId
+  }
+  
+  # All active bids (demand)
+  demand: bids(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "ACTIVE"
+    }
+    first: $limit
+    orderBy: amount
+    orderDirection: desc
+  ) {
+    amount
+    currency
+    tokenAmount
+    tokenId
+  }
+  
+  # Recent price points
+  recentSales: listings(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "SOLD"
+    }
+    first: 20
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    price
+    currency
+    createdAt
+    tokenId
+  }
+}
+
+# Hot collections discovery
+query DiscoverHotCollections($timeframe: BigInt!, $limit: Int = 20) {
+  # Collections with most recent sales
+  collections: nfts(first: 100) {
+    id
+    name
+    symbol
+    tokenAddress
+    tokenType
+    creator
+    contractCreatedAt
+    
+    # Recent sales activity
+    tokenInstances {
+      listings(
+        where: { 
+          status: "SOLD",
+          createdAt_gte: $timeframe
+        }
+      ) {
+        price
+        currency
+        createdAt
+      }
+    }
+  }
+}
+
+# Expiring bids and listings
+query GetExpiringMarketItems($timeThreshold: BigInt!) {
+  # Bids expiring soon
+  expiringBids: bids(
+    where: { 
+      status: "ACTIVE",
+      timeout_lte: $timeThreshold
+    }
+    orderBy: timeout
+    orderDirection: asc
+  ) {
+    id
+    bidder
+    tokenAddress
+    tokenId
+    tokenAmount
+    amount
+    currency
+    timeout
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}
+
+# Price alerts data
+query GetPriceAlertsData($collectionAddress: Bytes!, $targetPrice: BigInt!, $currency: Bytes!) {
+  # Listings at or below target price
+  belowTargetListings: listings(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "ACTIVE",
+      currency: $currency,
+      price_lte: $targetPrice
+    }
+    orderBy: price
+    orderDirection: asc
+  ) {
+    id
+    seller
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      tokenId
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+  
+  # Recent sales near target price
+  recentSalesNearTarget: listings(
+    where: { 
+      tokenAddress: $collectionAddress,
+      status: "SOLD",
+      currency: $currency,
+      price_lte: $targetPrice
+    }
+    first: 10
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    price
+    currency
+    createdAt
+    tokenId
+  }
+}
+
+# Collection momentum analysis
+query GetCollectionMomentum($collectionAddress: Bytes!, $timeframe: BigInt!) {
+  collection: nft(id: $collectionAddress) {
+    name
+    symbol
+    tokenType
+    
+    # New listings in timeframe
+    tokenInstances {
+      newListings: listings(
+        where: { 
+          status: "ACTIVE",
+          createdAt_gte: $timeframe
+        }
+      ) {
+        price
+        currency
+        createdAt
+      }
+      
+      # Sales in timeframe
+      recentSales: listings(
+        where: { 
+          status: "SOLD",
+          createdAt_gte: $timeframe
+        }
+      ) {
+        price
+        currency
+        createdAt
+      }
+      
+      # New bids in timeframe
+      newBids: bids(
+        where: { 
+          status: "ACTIVE",
+          createdAt_gte: $timeframe
+        }
+      ) {
+        amount
+        currency
+        createdAt
+      }
+    }
+  }
+}
+
+# Cross-collection arbitrage opportunities
+query FindArbitrageOpportunities($collectionAddresses: [Bytes!]!, $limit: Int = 50) {
+  # Get listings from multiple collections for comparison
+  listings(
+    where: { 
+      tokenAddress_in: $collectionAddresses,
+      status: "ACTIVE"
+    }
+    first: $limit
+    orderBy: price
+    orderDirection: asc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+}
+
+# Whale activity tracking
+query TrackWhaleActivity($minValue: BigInt!, $timeframe: BigInt!) {
+  # High-value sales
+  whaleActivity: listings(
+    where: { 
+      status: "SOLD",
+      price_gte: $minValue,
+      createdAt_gte: $timeframe
+    }
+    orderBy: price
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+      # Get buyer from transfer
+      transfers(
+        where: { transferType: "MARKETPLACE_SALE" }
+        first: 1
+        orderBy: timestamp
+        orderDirection: desc
+      ) {
+        to
+        timestamp
+      }
+    }
+  }
+  
+  # High-value new listings
+  whaleListings: listings(
+    where: { 
+      status: "ACTIVE",
+      price_gte: $minValue,
+      createdAt_gte: $timeframe
+    }
+    orderBy: price
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}

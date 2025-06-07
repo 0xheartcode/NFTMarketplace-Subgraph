@@ -1,0 +1,285 @@
+# queries/trading.graphql
+# ==============================================
+# Marketplace Trading Queries
+# ==============================================
+# These queries focus on marketplace activities: listings, bids, sales
+# Suitable for: Trading interfaces, marketplace activity tracking
+
+# Query 1: Get active listings for a collection
+# Variables: $collectionAddress: Bytes!, $limit: Int = 20
+query GetActiveListings($collectionAddress: Bytes!, $limit: Int = 20) {
+  listings(
+    where: { 
+      tokenAddress: $collectionAddress, 
+      status: "ACTIVE" 
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      tokenId
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}
+
+# Query 2: Get user's active listings
+# Variables: $userAddress: Bytes!
+query GetUserActiveListings($userAddress: Bytes!) {
+  listings(
+    where: { 
+      seller: $userAddress, 
+      status: "ACTIVE" 
+    }
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+}
+
+# Query 3: Get active bids for a token
+# Variables: $collectionAddress: Bytes!, $tokenId: BigInt!
+query GetTokenBids($collectionAddress: Bytes!, $tokenId: BigInt!) {
+  bids(
+    where: { 
+      tokenAddress: $collectionAddress,
+      tokenId: $tokenId,
+      status: "ACTIVE"
+    }
+    orderBy: amount
+    orderDirection: desc
+  ) {
+    id
+    bidder
+    tokenAmount
+    amount
+    currency
+    timeout
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}
+
+# Query 4: Get user's active bids
+# Variables: $userAddress: Bytes!
+query GetUserActiveBids($userAddress: Bytes!) {
+  bids(
+    where: { 
+      bidder: $userAddress, 
+      status: "ACTIVE" 
+    }
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    tokenAmount
+    amount
+    currency
+    timeout
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+}
+
+# Query 5: Get recent sales for a collection
+# Variables: $collectionAddress: Bytes!, $limit: Int = 50
+query GetRecentSales($collectionAddress: Bytes!, $limit: Int = 50) {
+  listings(
+    where: { 
+      tokenAddress: $collectionAddress, 
+      status: "SOLD" 
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+      # Get the transfer that corresponds to this sale
+      transfers(
+        where: { transferType: "MARKETPLACE_SALE" }
+        orderBy: timestamp
+        orderDirection: desc
+        first: 1
+      ) {
+        to # This is the buyer
+        timestamp
+        transactionHash
+      }
+    }
+  }
+}
+
+# Query 6: Get comprehensive trading activity for a token
+# Variables: $instanceId: ID!
+query GetTokenTradingHistory($instanceId: ID!) {
+  tokenInstance(id: $instanceId) {
+    id
+    tokenId
+    collection {
+      name
+      symbol
+      tokenAddress
+    }
+    
+    # All listings for this token
+    listings(orderBy: createdAt, orderDirection: desc) {
+      id
+      seller
+      amount
+      price
+      currency
+      status
+      createdAt
+    }
+    
+    # All bids for this token
+    bids(orderBy: createdAt, orderDirection: desc) {
+      id
+      bidder
+      tokenAmount
+      amount
+      currency
+      status
+      timeout
+      createdAt
+    }
+    
+    # All transfers (including marketplace sales)
+    transfers(orderBy: timestamp, orderDirection: desc) {
+      id
+      from
+      to
+      amount
+      transferType
+      timestamp
+      transactionHash
+      relatedListing {
+        price
+        currency
+      }
+      relatedBid {
+        amount
+        currency
+      }
+    }
+  }
+}
+
+# Query 7: Get marketplace activity feed
+# Variables: $limit: Int = 100
+query GetMarketplaceActivityFeed($limit: Int = 100) {
+  # Recent sales
+  recentSales: listings(
+    where: { status: "SOLD" }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+  
+  # New listings
+  newListings: listings(
+    where: { status: "ACTIVE" }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    seller
+    tokenAddress
+    tokenId
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+  
+  # New bids
+  newBids: bids(
+    where: { status: "ACTIVE" }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    bidder
+    tokenAddress
+    tokenId
+    amount
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}

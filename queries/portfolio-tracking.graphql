@@ -1,0 +1,320 @@
+# Portfolio and Ownership Tracking Queries
+
+# Get complete user portfolio with current values
+query GetUserPortfolio($userAddress: Bytes!, $limit: Int = 100) {
+  tokenBalances(
+    where: { 
+      owner: $userAddress,
+      amount_gt: "0"
+    }
+    first: $limit
+    orderBy: lastUpdatedAt
+    orderDirection: desc
+  ) {
+    amount
+    createdAt
+    lastUpdatedAt
+    instance {
+      id
+      tokenId
+      totalSupply
+      collection {
+        name
+        symbol
+        tokenType
+        tokenAddress
+        creator
+      }
+    }
+  }
+}
+
+# Get user's trading history (all purchases and sales)
+query GetUserTradingHistory($userAddress: Bytes!, $limit: Int = 200) {
+  # Items sold by user
+  soldItems: listings(
+    where: { 
+      seller: $userAddress,
+      status: "SOLD"
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+  
+  # Items user bid on and won
+  wonBids: bids(
+    where: { 
+      bidder: $userAddress,
+      status: "ACCEPTED"
+    }
+    first: $limit
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    tokenAmount
+    amount
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+      }
+    }
+  }
+}
+
+# Get user's current market positions
+query GetUserMarketPositions($userAddress: Bytes!) {
+  # Active listings
+  activeListings: listings(
+    where: { 
+      seller: $userAddress,
+      status: "ACTIVE"
+    }
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    amount
+    price
+    currency
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+  
+  # Active bids
+  activeBids: bids(
+    where: { 
+      bidder: $userAddress,
+      status: "ACTIVE"
+    }
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    tokenAmount
+    amount
+    currency
+    timeout
+    createdAt
+    instance {
+      collection {
+        name
+        symbol
+        tokenType
+      }
+    }
+  }
+  
+  # Recently cancelled activities
+  cancelledListings: listings(
+    where: { 
+      seller: $userAddress,
+      status: "CANCELLED"
+    }
+    first: 20
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    price
+    currency
+    createdAt
+  }
+  
+  cancelledBids: bids(
+    where: { 
+      bidder: $userAddress,
+      status: "CANCELLED"
+    }
+    first: 20
+    orderBy: createdAt
+    orderDirection: desc
+  ) {
+    id
+    tokenAddress
+    tokenId
+    amount
+    currency
+    createdAt
+  }
+}
+
+# Get portfolio value estimation data
+query GetPortfolioValueData($userAddress: Bytes!) {
+  # Get user's tokens
+  holdings: tokenBalances(
+    where: { 
+      owner: $userAddress,
+      amount_gt: "0"
+    }
+  ) {
+    amount
+    instance {
+      id
+      tokenId
+      collection {
+        tokenAddress
+        name
+        symbol
+      }
+      # Get recent sales for price reference
+      listings(
+        where: { status: "SOLD" }
+        first: 3
+        orderBy: createdAt
+        orderDirection: desc
+      ) {
+        price
+        currency
+        createdAt
+      }
+      # Get current floor price
+      currentListings: listings(
+        where: { status: "ACTIVE" }
+        first: 1
+        orderBy: price
+        orderDirection: asc
+      ) {
+        price
+        currency
+      }
+    }
+  }
+}
+
+# Get user's transaction timeline
+query GetUserTransactionTimeline($userAddress: Bytes!, $limit: Int = 100) {
+  # All transfers involving the user
+  receivedTransfers: transfers(
+    where: { to: $userAddress }
+    first: $limit
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    from
+    to
+    amount
+    transferType
+    timestamp
+    transactionHash
+    instance {
+      tokenId
+      collection {
+        name
+        symbol
+        tokenAddress
+      }
+    }
+    relatedListing {
+      price
+      currency
+    }
+    relatedBid {
+      amount
+      currency
+    }
+  }
+  
+  sentTransfers: transfers(
+    where: { from: $userAddress }
+    first: $limit
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    from
+    to
+    amount
+    transferType
+    timestamp
+    transactionHash
+    instance {
+      tokenId
+      collection {
+        name
+        symbol
+        tokenAddress
+      }
+    }
+    relatedListing {
+      price
+      currency
+    }
+    relatedBid {
+      amount
+      currency
+    }
+  }
+}
+
+# Get user's favorite collections (most holdings)
+query GetUserFavoriteCollections($userAddress: Bytes!) {
+  tokenBalances(
+    where: { 
+      owner: $userAddress,
+      amount_gt: "0"
+    }
+  ) {
+    amount
+    instance {
+      collection {
+        id
+        name
+        symbol
+        tokenAddress
+        tokenType
+      }
+    }
+  }
+}
+
+# Check if user owns specific tokens
+query CheckTokenOwnership($userAddress: Bytes!, $tokenAddresses: [Bytes!]!, $tokenIds: [BigInt!]!) {
+  tokenBalances(
+    where: { 
+      owner: $userAddress,
+      amount_gt: "0"
+    }
+  ) {
+    amount
+    instance {
+      tokenId
+      collection {
+        tokenAddress
+      }
+    }
+  }
+}

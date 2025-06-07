@@ -1,0 +1,122 @@
+# queries/collections.graphql
+# ==============================================
+# Basic Collection Queries
+# ==============================================
+# These queries focus on NFT collections and factory contracts
+# Suitable for: Collection discovery, basic marketplace browsing
+
+# Query 1: Get all collections from all factories
+# Use case: Homepage collection grid, marketplace overview
+query GetAllCollections {
+  factories(orderBy: createdAt, orderDirection: desc) {
+    id
+    type
+    nftCount
+    createdAt
+    nfts(first: 5, orderBy: contractCreatedAt, orderDirection: desc) {
+      id
+      name
+      symbol
+      tokenAddress
+      tokenType
+      creator
+      contractCreatedAt
+    }
+  }
+}
+
+# Query 2: Get collections by token standard
+# Variables: $tokenType: String! (e.g., "ERC721", "ERC1155", "ERC6909")
+query GetCollectionsByType($tokenType: String!) {
+  nfts(where: { tokenType: $tokenType }) {
+    id
+    name
+    symbol
+    tokenAddress
+    creator
+    contractCreatedAt
+    factory {
+      type
+      nftCount
+    }
+  }
+}
+
+# Query 3: Get specific collection details
+# Variables: $collectionAddress: ID!
+query GetCollectionDetails($collectionAddress: ID!) {
+  nft(id: $collectionAddress) {
+    id
+    name
+    symbol
+    tokenType
+    creator
+    contractCreatedAt
+    factory {
+      id
+      type
+      createdAt
+    }
+    # Get a preview of tokens in this collection
+    tokenInstances(first: 10, orderBy: mintedAt, orderDirection: desc) {
+      id
+      tokenId
+      mintedAt
+      totalSupply
+    }
+  }
+}
+
+# Query 4: Search collections by creator
+# Variables: $creator: Bytes!
+query GetCollectionsByCreator($creator: Bytes!) {
+  nfts(where: { creator: $creator }) {
+    id
+    name
+    symbol
+    tokenAddress
+    tokenType
+    contractCreatedAt
+    factory {
+      type
+    }
+  }
+}
+
+# Query 5: Get recently created collections
+# Variables: $limit: Int = 10
+query GetRecentCollections($limit: Int = 10) {
+  nfts(
+    first: $limit
+    orderBy: contractCreatedAt
+    orderDirection: desc
+  ) {
+    id
+    name
+    symbol
+    tokenAddress
+    tokenType
+    creator
+    contractCreatedAt
+    factory {
+      type
+    }
+  }
+}
+
+# Query 6: Get collections with most tokens minted
+# Note: This requires counting tokenInstances
+query GetMostActiveCollections($limit: Int = 10) {
+  nfts(first: $limit) {
+    id
+    name
+    symbol
+    tokenAddress
+    tokenType
+    creator
+    # Count total token instances (approximation of activity)
+    tokenInstances(first: 1000) {
+      id
+    }
+  }
+}
