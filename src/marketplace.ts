@@ -8,11 +8,10 @@ export function handleListingCreated(event: ListingCreated): void {
     let listingId = event.params.listingId.toString()
     let listing = new Listing(listingId)
     
+    // TokenInstance will be populated when NFT events create the actual instances
     let instanceId = event.params.tokenAddress.toHexString() + '-' + event.params.tokenId.toString()
-    let instance = TokenInstance.load(instanceId)
-    if (instance) {
-        listing.instance = instanceId
-    }
+    let existingInstance = TokenInstance.load(instanceId)
+    listing.instance = existingInstance ? instanceId : null
     
     listing.seller = event.params.seller
     listing.tokenAddress = event.params.tokenAddress
@@ -29,7 +28,7 @@ export function handleListingCreated(event: ListingCreated): void {
     let history = new ListingHistory(historyId)
     history.listingId = listingId
     history.action = "CREATED"
-    history.instance = instanceId
+    history.instance = existingInstance ? instanceId : null
     history.seller = event.params.seller
     history.tokenAddress = event.params.tokenAddress
     history.tokenId = event.params.tokenId
@@ -95,12 +94,12 @@ export function handleListingSold(event: ListingSold): void {
         // Create pending transfer context for the upcoming NFT transfer
         createPendingTransfer(
             event.transaction.hash,
-            event.params.tokenAddress,
-            event.params.tokenId,
+            listing.tokenAddress,
+            listing.tokenId,
             "MARKETPLACE_SALE",
+            event.block.timestamp,
             listingId,
-            null,
-            event.block.timestamp
+            null
         )
     }
 }
@@ -117,11 +116,10 @@ export function handleBidPlaced(event: BidPlaced): void {
 
     if (!bid) bid = new Bid(bidId);
 
+    // TokenInstance will be populated when NFT events create the actual instances
     let instanceId = event.params.tokenAddress.toHexString() + '-' + event.params.tokenId.toString()
-    let instance = TokenInstance.load(instanceId)
-    if (instance) {
-        bid.instance = instanceId
-    }
+    let existingInstance = TokenInstance.load(instanceId)
+    bid.instance = existingInstance ? instanceId : null
     
     bid.bidder = event.params.bidder
     bid.tokenAddress = event.params.tokenAddress
@@ -139,7 +137,7 @@ export function handleBidPlaced(event: BidPlaced): void {
     let history = new BidHistory(historyId)
     history.bidId = bidId
     history.action = "PLACED"
-    history.instance = instanceId
+    history.instance = existingInstance ? instanceId : null
     history.bidder = event.params.bidder
     history.tokenAddress = event.params.tokenAddress
     history.tokenId = event.params.tokenId
@@ -257,9 +255,9 @@ export function handleBidAccepted(event: BidAccepted): void {
             event.params.tokenAddress,
             event.params.tokenId,
             "BID_ACCEPTANCE",
+            event.block.timestamp,
             null,
-            bidId,
-            event.block.timestamp
+            bidId
         )
     }
 }

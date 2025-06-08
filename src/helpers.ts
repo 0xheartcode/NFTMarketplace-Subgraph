@@ -27,9 +27,9 @@ export function createPendingTransfer(
   tokenAddress: Bytes,
   tokenId: BigInt,
   transferType: string,
+  createdAt: BigInt,
   listingId: string | null = null,
-  bidId: string | null = null,
-  createdAt: BigInt
+  bidId: string | null = null
 ): void {
   let id = transactionHash.toHexString() + '-' + tokenAddress.toHexString() + '-' + tokenId.toString()
   
@@ -61,3 +61,4 @@ export function deletePendingTransfer(
   let id = transactionHash.toHexString() + '-' + tokenAddress.toHexString() + '-' + tokenId.toString()
   store.remove('PendingTransfer', id)
 }
+

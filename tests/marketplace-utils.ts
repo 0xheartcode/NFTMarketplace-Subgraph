@@ -62,8 +62,10 @@ export function createListingCancelledEvent(listingId: BigInt): ListingCancelled
 
 export function createListingSoldEvent(
   listingId: BigInt,
-  tokenAddress: Address,
-  tokenId: BigInt
+  buyer: Address,
+  seller: Address,
+  price: BigInt,
+  currency: Address
 ): ListingSold {
   let listingSoldEvent = changetype<ListingSold>(newMockEvent())
 
@@ -73,20 +75,26 @@ export function createListingSoldEvent(
     new ethereum.EventParam("listingId", ethereum.Value.fromUnsignedBigInt(listingId))
   )
   listingSoldEvent.parameters.push(
-    new ethereum.EventParam("tokenAddress", ethereum.Value.fromAddress(tokenAddress))
+    new ethereum.EventParam("buyer", ethereum.Value.fromAddress(buyer))
   )
   listingSoldEvent.parameters.push(
-    new ethereum.EventParam("tokenId", ethereum.Value.fromUnsignedBigInt(tokenId))
+    new ethereum.EventParam("seller", ethereum.Value.fromAddress(seller))
+  )
+  listingSoldEvent.parameters.push(
+    new ethereum.EventParam("price", ethereum.Value.fromUnsignedBigInt(price))
+  )
+  listingSoldEvent.parameters.push(
+    new ethereum.EventParam("currency", ethereum.Value.fromAddress(currency))
   )
 
   return listingSoldEvent
 }
 
 export function createBidPlacedEvent(
-  bidder: Address,
   tokenAddress: Address,
   tokenId: BigInt,
   tokenAmount: BigInt,
+  bidder: Address,
   amount: BigInt,
   currency: Address,
   duration: BigInt
@@ -96,9 +104,6 @@ export function createBidPlacedEvent(
   bidPlacedEvent.parameters = new Array()
 
   bidPlacedEvent.parameters.push(
-    new ethereum.EventParam("bidder", ethereum.Value.fromAddress(bidder))
-  )
-  bidPlacedEvent.parameters.push(
     new ethereum.EventParam("tokenAddress", ethereum.Value.fromAddress(tokenAddress))
   )
   bidPlacedEvent.parameters.push(
@@ -106,6 +111,9 @@ export function createBidPlacedEvent(
   )
   bidPlacedEvent.parameters.push(
     new ethereum.EventParam("tokenAmount", ethereum.Value.fromUnsignedBigInt(tokenAmount))
+  )
+  bidPlacedEvent.parameters.push(
+    new ethereum.EventParam("bidder", ethereum.Value.fromAddress(bidder))
   )
   bidPlacedEvent.parameters.push(
     new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
@@ -121,20 +129,20 @@ export function createBidPlacedEvent(
 }
 
 export function createBidCancelledEvent(
-  bidder: Address,
   tokenAddress: Address,
   tokenId: BigInt,
   tokenAmount: BigInt,
-  currency: Address
+  bidder: Address,
+  amount: BigInt,
+  currency: Address,
+  canceller: Address,
+  cancellationFee: BigInt
 ): BidCancelled {
   let bidCancelledEvent = changetype<BidCancelled>(newMockEvent())
 
   bidCancelledEvent.parameters = new Array()
 
   bidCancelledEvent.parameters.push(
-    new ethereum.EventParam("bidder", ethereum.Value.fromAddress(bidder))
-  )
-  bidCancelledEvent.parameters.push(
     new ethereum.EventParam("tokenAddress", ethereum.Value.fromAddress(tokenAddress))
   )
   bidCancelledEvent.parameters.push(
@@ -144,26 +152,39 @@ export function createBidCancelledEvent(
     new ethereum.EventParam("tokenAmount", ethereum.Value.fromUnsignedBigInt(tokenAmount))
   )
   bidCancelledEvent.parameters.push(
+    new ethereum.EventParam("bidder", ethereum.Value.fromAddress(bidder))
+  )
+  bidCancelledEvent.parameters.push(
+    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
+  )
+  bidCancelledEvent.parameters.push(
     new ethereum.EventParam("currency", ethereum.Value.fromAddress(currency))
+  )
+  bidCancelledEvent.parameters.push(
+    new ethereum.EventParam("canceller", ethereum.Value.fromAddress(canceller))
+  )
+  bidCancelledEvent.parameters.push(
+    new ethereum.EventParam("cancellationFee", ethereum.Value.fromUnsignedBigInt(cancellationFee))
   )
 
   return bidCancelledEvent
 }
 
 export function createBidAcceptedEvent(
-  bidder: Address,
   tokenAddress: Address,
   tokenId: BigInt,
   tokenAmount: BigInt,
-  currency: Address
+  seller: Address,
+  bidder: Address,
+  amount: BigInt,
+  currency: Address,
+  royaltyAmount: BigInt,
+  royaltyReceiver: Address
 ): BidAccepted {
   let bidAcceptedEvent = changetype<BidAccepted>(newMockEvent())
 
   bidAcceptedEvent.parameters = new Array()
 
-  bidAcceptedEvent.parameters.push(
-    new ethereum.EventParam("bidder", ethereum.Value.fromAddress(bidder))
-  )
   bidAcceptedEvent.parameters.push(
     new ethereum.EventParam("tokenAddress", ethereum.Value.fromAddress(tokenAddress))
   )
@@ -174,7 +195,22 @@ export function createBidAcceptedEvent(
     new ethereum.EventParam("tokenAmount", ethereum.Value.fromUnsignedBigInt(tokenAmount))
   )
   bidAcceptedEvent.parameters.push(
+    new ethereum.EventParam("seller", ethereum.Value.fromAddress(seller))
+  )
+  bidAcceptedEvent.parameters.push(
+    new ethereum.EventParam("bidder", ethereum.Value.fromAddress(bidder))
+  )
+  bidAcceptedEvent.parameters.push(
+    new ethereum.EventParam("amount", ethereum.Value.fromUnsignedBigInt(amount))
+  )
+  bidAcceptedEvent.parameters.push(
     new ethereum.EventParam("currency", ethereum.Value.fromAddress(currency))
+  )
+  bidAcceptedEvent.parameters.push(
+    new ethereum.EventParam("royaltyAmount", ethereum.Value.fromUnsignedBigInt(royaltyAmount))
+  )
+  bidAcceptedEvent.parameters.push(
+    new ethereum.EventParam("royaltyReceiver", ethereum.Value.fromAddress(royaltyReceiver))
   )
 
   return bidAcceptedEvent

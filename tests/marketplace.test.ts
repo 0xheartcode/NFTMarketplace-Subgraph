@@ -27,13 +27,7 @@ import {
 
 describe("Marketplace Event Handlers", () => {
   beforeAll(() => {
-    // Create a mock TokenInstance that will be referenced by listings/bids
-    let tokenAddress = Address.fromString("0x1234567890123456789012345678901234567890")
-    let tokenId = BigInt.fromI32(1)
-    let instanceId = tokenAddress.toHexString() + "-" + tokenId.toString()
-    
-    // Note: In a real scenario, TokenInstance would be created by NFT contract events
-    // For testing, we'll just assume it exists or handle the null case
+    // Setup any initial state if needed
   })
 
   afterAll(() => {
@@ -114,7 +108,8 @@ describe("Marketplace Event Handlers", () => {
       handleListingCreated(createEvent)
 
       // Then mark as sold
-      let soldEvent = createListingSoldEvent(listingId, tokenAddress, tokenId)
+      let buyer = Address.fromString("0x5555555555555555555555555555555555555555")
+      let soldEvent = createListingSoldEvent(listingId, buyer, seller, price, currency)
       handleListingSold(soldEvent)
 
       assert.fieldEquals("Listing", "2", "status", "SOLD")
@@ -135,10 +130,10 @@ describe("Marketplace Event Handlers", () => {
       let duration = BigInt.fromI32(86400) // 1 day
 
       let event = createBidPlacedEvent(
-        bidder,
         tokenAddress,
         tokenId,
         tokenAmount,
+        bidder,
         amount,
         currency,
         duration
@@ -169,14 +164,18 @@ describe("Marketplace Event Handlers", () => {
       let tokenAddress = Address.fromString("0x1234567890123456789012345678901234567890")
       let tokenId = BigInt.fromI32(3)
       let tokenAmount = BigInt.fromI32(1)
+      let amount = BigInt.fromI32(500)
       let currency = Address.fromString("0x2222222222222222222222222222222222222222")
 
       let event = createBidCancelledEvent(
-        bidder,
         tokenAddress,
         tokenId,
         tokenAmount,
-        currency
+        bidder,
+        amount,
+        currency,
+        bidder, // canceller is the bidder
+        BigInt.fromI32(0) // no cancellation fee for testing
       )
 
       handleBidCancelled(event)
@@ -201,10 +200,10 @@ describe("Marketplace Event Handlers", () => {
       let duration = BigInt.fromI32(86400)
 
       let placedEvent = createBidPlacedEvent(
-        bidder,
         tokenAddress,
         tokenId,
         tokenAmount,
+        bidder,
         amount,
         currency,
         duration
@@ -212,12 +211,17 @@ describe("Marketplace Event Handlers", () => {
       handleBidPlaced(placedEvent)
 
       // Then accept the bid
+      let seller = Address.fromString("0x5555555555555555555555555555555555555555")
       let acceptedEvent = createBidAcceptedEvent(
-        bidder,
         tokenAddress,
         tokenId,
         tokenAmount,
-        currency
+        seller,
+        bidder,
+        amount,
+        currency,
+        BigInt.fromI32(0), // no royalty for testing
+        Address.zero() // no royalty receiver
       )
       handleBidAccepted(acceptedEvent)
 
