@@ -90,3 +90,10 @@ subgraph.yaml
 
 # Vite
 .vite
+
+# Matchstick test artifacts
+tests/.bin/
+tests/.latest.json
+
+# Or more broadly, all hidden files in tests folder
+tests/.*
