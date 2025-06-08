@@ -11,14 +11,16 @@
     "test": "graph test"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "^0.94.0",
+    "@graphprotocol/graph-cli": "^0.97.1",
     "@graphprotocol/graph-ts": "^0.37.0",
     "dotenv": "^16.4.7",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.94.0",
+    "@assemblyscript/loader": "0.19.23",
+    "@graphprotocol/graph-cli": "^0.97.0",
     "@graphprotocol/graph-ts": "^0.37.0",
+    "assemblyscript": "0.19.23",
     "matchstick-as": "^0.6.0",
     "typescript": "^5.7.3"
   }
