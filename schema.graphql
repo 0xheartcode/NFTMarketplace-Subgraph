@@ -1,4 +1,4 @@
-type Factory @entity {
+type Factory @entity(immutable: false) {
   id: ID!                     # Factory contract address
   type: String!              # "ERC721", "ERC1155" "ERC6909"
   nftCount: BigInt!
@@ -6,7 +6,7 @@ type Factory @entity {
   createdAt: BigInt!
 }
 
-type NFT @entity {
+type NFT @entity(immutable: false) {
   id: ID!                     # NFT contract address
   factory: Factory!
   creator: Bytes!
@@ -18,7 +18,7 @@ type NFT @entity {
   tokenInstances: [TokenInstance!]! @derivedFrom(field: "collection")
 }
 
-type TokenInstance @entity {
+type TokenInstance @entity(immutable: false) {
   id: ID!                    # contractAddress-tokenId
   collection: NFT!
   tokenId: BigInt!
@@ -30,7 +30,7 @@ type TokenInstance @entity {
   bids: [Bid!]! @derivedFrom(field: "instance")
 }
 
-type TokenBalance @entity {
+type TokenBalance @entity(immutable: false) {
   id: ID!                     # contractAddress-tokenId-owner
   instance: TokenInstance!
   owner: Bytes!
@@ -40,9 +40,9 @@ type TokenBalance @entity {
 }
 
 # Keep existing Listing and Bid entities...
-type Listing @entity {
+type Listing @entity(immutable: false) {
   id: ID!
-  instance: TokenInstance!
+  instance: TokenInstance
   seller: Bytes!
   tokenAddress: Bytes!
   tokenId: BigInt!
@@ -53,9 +53,9 @@ type Listing @entity {
   createdAt: BigInt!
 }
 
-type Bid @entity {
+type Bid @entity(immutable: false) {
   id: ID!
-  instance: TokenInstance!
+  instance: TokenInstance
   bidder: Bytes!
   tokenAddress: Bytes!
   tokenId: BigInt!
@@ -67,9 +67,9 @@ type Bid @entity {
   createdAt: BigInt!
 }
 
-type Transfer @entity {
+type Transfer @entity(immutable: true) {
   id: ID!
-  instance: TokenInstance!
+  instance: TokenInstance
   from: Bytes!
   to: Bytes!
   amount: BigInt!
@@ -80,7 +80,7 @@ type Transfer @entity {
   transactionHash: Bytes!
 }
 
-type ContractOwnership @entity {
+type ContractOwnership @entity(immutable: true) {
   id: ID!                    # contract address
   contract: NFT!
   owner: Bytes!
@@ -89,7 +89,7 @@ type ContractOwnership @entity {
   transactionHash: Bytes!
 }
 
-type PendingTransfer @entity {
+type PendingTransfer @entity(immutable: false) {
   id: ID!                     # txHash-tokenAddress-tokenId
   transactionHash: Bytes!
   tokenAddress: Bytes!
@@ -100,11 +100,11 @@ type PendingTransfer @entity {
   createdAt: BigInt!
 }
 
-type ListingHistory @entity {
+type ListingHistory @entity(immutable: true) {
   id: ID!                     # txHash-logIndex (unique)
   listingId: String!          # Links to current Listing
   action: String!             # "CREATED", "CANCELLED", "SOLD"
-  instance: TokenInstance!
+  instance: TokenInstance
   seller: Bytes!
   tokenAddress: Bytes!
   tokenId: BigInt!
@@ -116,11 +116,11 @@ type ListingHistory @entity {
   blockNumber: BigInt!
 }
 
-type BidHistory @entity {
+type BidHistory @entity(immutable: true) {
   id: ID!                     # txHash-logIndex (unique)
   bidId: String!              # Links to current Bid
   action: String!             # "PLACED", "CANCELLED", "ACCEPTED", "OUTBID"
-  instance: TokenInstance!
+  instance: TokenInstance
   bidder: Bytes!
   tokenAddress: Bytes!
   tokenId: BigInt!
